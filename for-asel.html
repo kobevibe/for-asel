@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>For Asel ♡</title>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #faf5e9;
+      font-family: 'Caveat', cursive;
+      position: relative;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #bg-canvas {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #sway-wrapper {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -54%);
+      z-index: 1;
+    }
+
+    #flower-svg {
+      display: block;
+      width: min(280px, 78vw);
+      height: min(370px, 82vw);
+      cursor: pointer;
+      filter: drop-shadow(0 4px 16px rgba(180,140,80,0.10));
+      transition: filter 0.3s;
+    }
+
+    #flower-svg:hover {
+      filter: drop-shadow(0 6px 24px rgba(230,160,80,0.18));
+    }
+
+    #sway-wrapper.sway #flower-svg {
+      animation: sway 3.2s ease-in-out infinite;
+      transform-origin: center bottom;
+    }
+
+    @keyframes sway {
+      0%, 100% { transform: rotate(-2.5deg); }
+      50%       { transform: rotate(2.5deg); }
+    }
+
+    /* Tally counter */
+    #tally-area {
+      position: absolute;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    #tally-svg {
+      display: block;
+      margin: 0 auto 6px;
+      overflow: visible;
+    }
+
+    #click-hint {
+      font-family: 'Caveat', cursive;
+      font-size: 18px;
+      color: #c0a888;
+      transition: opacity 0.6s;
+    }
+
+    /* Sparks */
+    .spark {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 50;
+      animation: spark-fly var(--dur) ease-out forwards;
+    }
+
+    @keyframes spark-fly {
+      0%   { transform: translate(0,0) scale(1) rotate(0deg); opacity: 1; }
+      100% { transform: translate(var(--tx), var(--ty)) scale(0) rotate(var(--rot)); opacity: 0; }
+    }
+
+    .petal-spark {
+      border-radius: 50% 50% 50% 0;
+      animation: spark-fly var(--dur) ease-out forwards;
+    }
+
+    /* Message overlay */
+    #msg-overlay {
+      position: fixed;
+      inset: 0;
+      background: #faf5e9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 0;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 100;
+      transition: opacity 2.8s ease;
+    }
+
+    #msg-overlay.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    #msg-sunflower {
+      width: 90px;
+      height: 90px;
+      margin-bottom: 28px;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity 1s 0.5s, transform 1s 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    #msg-overlay.show #msg-sunflower {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    #msg-text {
+      font-family: 'Caveat', cursive;
+      font-size: clamp(21px, 3.8vw, 36px);
+      color: #8a6252;
+      max-width: 580px;
+      text-align: center;
+      line-height: 1.85;
+      padding: 0 36px;
+      min-height: 160px;
+    }
+
+    #cursor-blink {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: #c0906a;
+      vertical-align: middle;
+      margin-left: 2px;
+      animation: blink 0.8s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    #msg-hearts {
+      font-family: 'Caveat', cursive;
+      font-size: 30px;
+      color: #e8a89c;
+      margin-top: 28px;
+      letter-spacing: 14px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 1.4s ease, transform 1.4s ease;
+    }
+
+    #msg-hearts.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div id="sway-wrapper">
+  <svg id="flower-svg" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg">
+
+    <!-- Ground mound -->
+    <ellipse cx="100" cy="293" rx="44" ry="8" fill="#c8b898" opacity="0.42"/>
+    <ellipse cx="100" cy="290" rx="28" ry="5" fill="#b8a888" opacity="0.28"/>
+
+    <!-- Seed -->
+    <g id="el-seed">
+      <ellipse cx="100" cy="288" rx="7.5" ry="4.5" fill="#8a6838"/>
+      <ellipse cx="99" cy="286.5" rx="5" ry="2.8" fill="#a07838" opacity="0.55"/>
+      <ellipse cx="101" cy="289" rx="3" ry="2" fill="#7a5828" opacity="0.4"/>
+    </g>
+
+    <!-- Stem — stroke-dashoffset animated -->
+    <path id="el-stem"
+          d="M 100 287 C 97 268 104 248 99 225 C 95 205 102 185 98 165 C 95 148 101 140 100 132"
+          stroke="#6a9a50" stroke-width="5.5" fill="none" stroke-linecap="round" stroke-linejoin="round"
+          stroke-dasharray="180" stroke-dashoffset="180"/>
+
+    <!-- Tiny shoot tip (sprout phase) -->
+    <g id="el-sprout" opacity="0">
+      <path d="M 100 287 C 100 278 99 270 100 262" stroke="#7aaa5a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M 100 268 C 94 262 90 256 93 251 C 97 256 99 262 100 267" fill="#8aba6a" opacity="0.9"/>
+    </g>
+
+    <!-- Leaf left -->
+    <g id="el-leaf-left" opacity="0">
+      <path d="M 98 220 C 80 212 68 196 72 178 C 80 183 90 198 98 218"
+            fill="#7aaa5a"/>
+      <path d="M 98 218 C 86 202 79 189 72 178" stroke="#5a8a3a" stroke-width="1.3" fill="none" stroke-linecap="round" opacity="0.55"/>
+    </g>
+
+    <!-- Leaf right -->
+    <g id="el-leaf-right" opacity="0">
+      <path d="M 102 245 C 122 237 133 220 128 202 C 119 208 108 224 102 242"
+            fill="#7aaa5a"/>
+      <path d="M 102 242 C 112 226 120 212 128 202" stroke="#5a8a3a" stroke-width="1.3" fill="none" stroke-linecap="round" opacity="0.55"/>
+    </g>
+
+    <!-- Small leaf right upper -->
+    <g id="el-leaf-small" opacity="0">
+      <path d="M 101 195 C 116 187 124 175 120 163 C 112 169 104 181 101 193"
+            fill="#8aba5a" opacity="0.85"/>
+    </g>
+
+    <!-- Bud -->
+    <g id="el-bud" opacity="0">
+      <ellipse cx="100" cy="127" rx="14" ry="19" fill="#c8a030"/>
+      <path d="M 87 123 C 90 112 100 107 110 112 C 108 118 100 120 92 122 Z" fill="#8aba5a" opacity="0.75"/>
+      <path d="M 90 120 C 93 110 100 106 107 110" stroke="#6a9a3a" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.5"/>
+      <ellipse cx="100" cy="128" rx="9" ry="12" fill="#d8b040" opacity="0.6"/>
+    </g>
+
+    <!-- === PETALS (drawn in JS) === -->
+    <g id="el-petals"></g>
+
+    <!-- Center disc -->
+    <g id="el-center" opacity="0">
+      <circle cx="100" cy="130" r="26" fill="#7a4e28"/>
+      <circle cx="100" cy="130" r="21" fill="#6a4020"/>
+      <g id="el-center-dots"></g>
+      <circle cx="100" cy="130" r="13" fill="#8a5e32" opacity="0.45"/>
+      <circle cx="100" cy="130" r="7"  fill="#6a4020" opacity="0.55"/>
+    </g>
+
+  </svg>
+</div>
+
+<!-- Tally counter -->
+<div id="tally-area">
+  <svg id="tally-svg" width="180" height="32" viewBox="0 0 180 32"></svg>
+  <div id="click-hint">click the flower ↑</div>
+</div>
+
+<!-- Final message overlay -->
+<div id="msg-overlay">
+  <!-- Mini sunflower decoration -->
+  <svg id="msg-sunflower" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(45,45)">
+      <ellipse cx="0" cy="-22" rx="9" ry="16" fill="#f5c542" transform="rotate(0)"/>
+      <ellipse cx="0" cy="-22" rx="9" ry="16" fill="#f5c542" transform="rotate(30)"/>
+      <ellipse cx="0" cy="-22" rx="9" ry="16" fill="#f0b830" transform="rotate(60)"/>
+      <ellipse cx="0" cy="-22" rx="9" ry="16" fill="#f5c542" transform="rotate(90)"/>
+      <ellipse cx="0" cy="-22" rx="9" ry="16" fill="#f5c542" transform="rotate(120)"/>
+      <ellipse cx="0" cy="-22" rx="9" ry="16" fill="#f0b830" transform="rotate(150)"/>
+      <ellipse cx="0" cy="-22" rx="9" ry="16" fill="#f5c542" transform="rotate(180)"/>
+      <ellipse cx="0" cy="-22" rx="9" ry="16" fill="#f5c542" transform="rotate(210)"/>
+      <ellipse cx="0" cy="-22" rx="9" ry="16" fill="#f0b830" transform="rotate(240)"/>
+      <ellipse cx="0" cy="-22" rx="9" ry="16" fill="#f5c542" transform="rotate(270)"/>
+      <ellipse cx="0" cy="-22" rx="9" ry="16" fill="#f5c542" transform="rotate(300)"/>
+      <ellipse cx="0" cy="-22" rx="9" ry="16" fill="#f0b830" transform="rotate(330)"/>
+      <circle cx="0" cy="0" r="17" fill="#6a4020"/>
+      <circle cx="0" cy="0" r="11" fill="#7a5030"/>
+    </g>
+  </svg>
+  <div id="msg-text"></div>
+  <div id="msg-hearts">♡ &nbsp; ♡ &nbsp; ♡</div>
+</div>
+
+<script>
+// =============================================
+//  CONFIG
+// =============================================
+const MAX = 40;
+const MSG = "For you, Asel.\n\nEvery click was a little piece of love.\n\nJust like you grow in my heart\nevery single day.";
+const SPARK_COLORS = ['#f5c542','#e8a89c','#f0d080','#a8c880','#f8b070','#d4a8c8','#f0e080','#e8c090'];
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+let clicks = 0;
+let done = false;
+
+// =============================================
+//  BACKGROUND CANVAS — static decorations
+// =============================================
+const bgCanvas = document.getElementById('bg-canvas');
+const bctx = bgCanvas.getContext('2d');
+
+function rng(seed) {
+  let s = seed;
+  return () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
+}
+
+function drawBg() {
+  bgCanvas.width  = window.innerWidth;
+  bgCanvas.height = window.innerHeight;
+  const W = bgCanvas.width, H = bgCanvas.height;
+  const r = rng(1337);
+
+  // Stars / asterisks
+  for (let i = 0; i < 60; i++) {
+    const x = r() * W, y = r() * H;
+    const sz = 2.5 + r() * 5.5;
+    const alpha = 0.09 + r() * 0.18;
+    const arms = r() > 0.45 ? 6 : 4;
+    const colors = ['#e8a89c','#f5c542','#7aaa6a','#d8c090','#c8a8d8'];
+    const c = colors[Math.floor(r() * colors.length)];
+    bctx.strokeStyle = c; bctx.globalAlpha = alpha; bctx.lineWidth = 1 + r() * 0.8;
+    for (let a = 0; a < arms; a++) {
+      const ang = (a / arms) * Math.PI * 2 + r() * 0.3;
+      bctx.beginPath();
+      bctx.moveTo(x, y);
+      bctx.lineTo(x + Math.cos(ang) * sz, y + Math.sin(ang) * sz);
+      bctx.stroke();
+    }
+    bctx.fillStyle = c; bctx.beginPath(); bctx.arc(x, y, 1.2, 0, Math.PI*2); bctx.fill();
+  }
+
+  // Dots
+  for (let i = 0; i < 90; i++) {
+    const x = r()*W, y = r()*H, sz = 0.7 + r()*2.5, alpha = 0.07 + r()*0.14;
+    const colors = ['#e8c090','#e8a89c','#c0d898','#d8c0b0'];
+    bctx.fillStyle = colors[Math.floor(r() * colors.length)];
+    bctx.globalAlpha = alpha;
+    bctx.beginPath(); bctx.arc(x, y, sz, 0, Math.PI*2); bctx.fill();
+  }
+
+  // Tiny hand-drawn hearts
+  for (let i = 0; i < 14; i++) {
+    const x = r()*W, y = r()*H, s = 3.5 + r()*6.5, alpha = 0.06 + r()*0.09;
+    bctx.strokeStyle = '#d0a080'; bctx.globalAlpha = alpha; bctx.lineWidth = 0.9;
+    bctx.beginPath();
+    bctx.moveTo(x, y + s*0.35);
+    bctx.bezierCurveTo(x, y - s*0.35, x - s, y - s*0.3, x - s, y + s*0.1);
+    bctx.bezierCurveTo(x - s, y + s*0.65, x, y + s*1.15, x, y + s*1.4);
+    bctx.bezierCurveTo(x, y + s*1.15, x + s, y + s*0.65, x + s, y + s*0.1);
+    bctx.bezierCurveTo(x + s, y - s*0.3, x, y - s*0.35, x, y + s*0.35);
+    bctx.stroke();
+  }
+
+  // Tiny squiggly lines
+  for (let i = 0; i < 18; i++) {
+    const x = r()*W, y = r()*H, len = 10 + r()*20, alpha = 0.05 + r()*0.07;
+    bctx.strokeStyle = '#c8b090'; bctx.globalAlpha = alpha; bctx.lineWidth = 0.8;
+    bctx.beginPath(); bctx.moveTo(x, y);
+    for (let j = 0; j < 4; j++) {
+      bctx.quadraticCurveTo(x + (j*len/4) + r()*8 - 4, y + (r()*10-5), x + (j+1)*len/4, y + (r()*6-3));
+    }
+    bctx.stroke();
+  }
+
+  bctx.globalAlpha = 1;
+}
+
+window.addEventListener('resize', drawBg);
+drawBg();
+
+// =============================================
+//  BUILD SVG FLOWER ELEMENTS
+// =============================================
+const petalEls = [];
+const petalsG = document.getElementById('el-petals');
+
+// Outer petals — 13 petals
+const outerPetalData = [
+  // Each petal: slightly irregular control points for hand-drawn feel
+  [0,   'M 100,130 C 92,114 89,96 100,84 C 111,96 108,114 100,130'],
+  [27,  'M 100,130 C 92,114 90,96 100,84 C 111,96 108,114 100,130'],
+  [54,  'M 100,130 C 93,114 90,96 101,83 C 111,97 108,114 100,130'],
+  [81,  'M 100,130 C 92,113 91,95 100,84 C 110,96 107,113 100,130'],
+  [108, 'M 100,130 C 92,114 90,97 100,84 C 111,96 109,114 100,130'],
+  [135, 'M 100,130 C 93,114 90,95 100,83 C 110,96 108,113 100,130'],
+  [162, 'M 100,130 C 91,114 90,96 100,84 C 111,97 108,114 100,130'],
+  [189, 'M 100,130 C 92,114 89,96 100,84 C 112,97 109,114 100,130'],
+  [216, 'M 100,130 C 92,113 90,95 100,84 C 110,96 108,114 100,130'],
+  [243, 'M 100,130 C 93,114 90,96 100,84 C 111,96 109,113 100,130'],
+  [270, 'M 100,130 C 91,114 89,96 100,84 C 111,96 108,114 100,130'],
+  [297, 'M 100,130 C 92,113 90,96 100,83 C 111,97 108,113 100,130'],
+  [324, 'M 100,130 C 92,114 90,97 100,84 C 111,96 109,114 100,130'],
+];
+
+const outerColors = ['#f5c542','#f0b830','#f5c840','#f0c038','#f5c542','#edb030',
+                     '#f5c542','#f0bc38','#f5c038','#f5c542','#edb830','#f5c440','#f0b830'];
+
+outerPetalData.forEach(([deg, pathD], i) => {
+  const g = document.createElementNS(SVG_NS, 'g');
+  g.setAttribute('transform', `rotate(${deg}, 100, 130)`);
+  const p = document.createElementNS(SVG_NS, 'path');
+  p.setAttribute('d', pathD);
+  p.setAttribute('fill', outerColors[i]);
+  p.setAttribute('opacity', '0');
+  g.appendChild(p);
+  petalsG.appendChild(g);
+  petalEls.push(p);
+});
+
+// Inner petal layer — 8 smaller petals offset by half
+const innerColors = ['#e8b030','#f0b838','#e8a828','#f0b030','#e8b030','#f0b030','#e8a828','#f0b838'];
+for (let i = 0; i < 8; i++) {
+  const deg = (i / 8) * 360 + 22;
+  const g = document.createElementNS(SVG_NS, 'g');
+  g.setAttribute('transform', `rotate(${deg}, 100, 130)`);
+  const p = document.createElementNS(SVG_NS, 'path');
+  p.setAttribute('d', 'M 100,130 C 94,118 92,105 100,96 C 108,105 106,118 100,130');
+  p.setAttribute('fill', innerColors[i]);
+  p.setAttribute('opacity', '0');
+  g.appendChild(p);
+  petalsG.appendChild(g);
+  petalEls.push(p);
+}
+
+// Center texture dots
+const centerDotsG = document.getElementById('el-center-dots');
+const dr = rng(777);
+for (let i = 0; i < 48; i++) {
+  const ang = dr() * Math.PI * 2;
+  const dist = dr() * 17;
+  const dot = document.createElementNS(SVG_NS, 'circle');
+  dot.setAttribute('cx', (100 + Math.cos(ang)*dist).toFixed(2));
+  dot.setAttribute('cy', (130 + Math.sin(ang)*dist).toFixed(2));
+  dot.setAttribute('r',  (0.7 + dr()*1.6).toFixed(2));
+  dot.setAttribute('fill', dr() > 0.5 ? '#c09060' : '#a07848');
+  dot.setAttribute('opacity', '0.65');
+  centerDotsG.appendChild(dot);
+}
+
+// =============================================
+//  TALLY MARKS
+// =============================================
+const tallySvg = document.getElementById('tally-svg');
+
+function drawTally(n) {
+  tallySvg.innerHTML = '';
+  const groups = 8; // 8 groups of 5 = 40
+  const gw = 20;
+  const totalW = groups * gw + 4;
+  tallySvg.setAttribute('viewBox', `0 0 ${totalW} 30`);
+  tallySvg.setAttribute('width', totalW * 1.5);
+
+  for (let g = 0; g < groups; g++) {
+    const filled = Math.min(5, Math.max(0, n - g*5));
+    const gx = g * gw + 2;
+
+    for (let k = 0; k < 4; k++) {
+      const line = document.createElementNS(SVG_NS, 'line');
+      line.setAttribute('x1', gx + k*3.8);  line.setAttribute('y1', '5');
+      line.setAttribute('x2', gx + k*3.8);  line.setAttribute('y2', '25');
+      line.setAttribute('stroke', k < filled ? '#b09068' : '#e0d0b8');
+      line.setAttribute('stroke-width', '1.8');
+      line.setAttribute('stroke-linecap', 'round');
+      tallySvg.appendChild(line);
+    }
+
+    if (filled >= 5) {
+      // Diagonal strike-through
+      const d = document.createElementNS(SVG_NS, 'line');
+      d.setAttribute('x1', gx - 2);     d.setAttribute('y1', '23');
+      d.setAttribute('x2', gx + 14.5);  d.setAttribute('y2', '7');
+      d.setAttribute('stroke', '#b09068');
+      d.setAttribute('stroke-width', '1.8');
+      d.setAttribute('stroke-linecap', 'round');
+      tallySvg.appendChild(d);
+    }
+  }
+}
+
+drawTally(0);
+
+// =============================================
+//  FLOWER UPDATE
+// =============================================
+function ease(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+function band(p, lo, hi) { return ease(Math.min(1, Math.max(0, (p - lo) / (hi - lo)))); }
+
+function setOpacity(id, v) {
+  const el = document.getElementById(id);
+  if (el) el.setAttribute('opacity', v.toFixed(3));
+}
+
+function updateFlower(n) {
+  const p = n / MAX;
+
+  // Sprout (very first few clicks)
+  setOpacity('el-sprout', band(p, 0, 0.1));
+
+  // Stem grows via dashoffset
+  const stemLen = 180;
+  const stemP = band(p, 0.04, 0.45);
+  document.getElementById('el-stem').setAttribute('stroke-dashoffset', (stemLen * (1 - stemP)).toFixed(1));
+
+  // Leaves
+  const leafP = band(p, 0.32, 0.52);
+  setOpacity('el-leaf-left',  leafP);
+  setOpacity('el-leaf-right', leafP);
+  setOpacity('el-leaf-small', band(p, 0.38, 0.56));
+
+  // Bud (appears then fades as petals come)
+  const budShow  = band(p, 0.48, 0.62);
+  const budFade  = band(p, 0.62, 0.72);
+  setOpacity('el-bud', budShow * (1 - budFade));
+
+  // Petals — staggered reveal
+  const totalPetals = petalEls.length;
+  petalEls.forEach((el, i) => {
+    const lo = 0.60 + (i / totalPetals) * 0.26;
+    const hi = lo + 0.08;
+    const v = band(p, lo, hi);
+    el.setAttribute('opacity', v.toFixed(3));
+  });
+
+  // Center
+  setOpacity('el-center',      band(p, 0.80, 0.95));
+  setOpacity('el-center-dots', band(p, 0.82, 0.97));
+}
+
+// =============================================
+//  SPARK PARTICLES
+// =============================================
+function spawnSparks(cx, cy) {
+  const n = 8 + Math.floor(Math.random() * 7);
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement('div');
+    const isPetal = Math.random() > 0.5;
+    el.className = isPetal ? 'petal-spark' : 'spark';
+
+    const size = 4 + Math.random() * 9;
+    const color = SPARK_COLORS[Math.floor(Math.random() * SPARK_COLORS.length)];
+    const angle = Math.random() * Math.PI * 2;
+    const dist  = 28 + Math.random() * 90;
+    const tx = (Math.cos(angle) * dist).toFixed(1);
+    const ty = (Math.sin(angle) * dist).toFixed(1);
+    const dur = (0.45 + Math.random() * 0.45).toFixed(2) + 's';
+    const rot = (Math.random() * 360).toFixed(0) + 'deg';
+
+    el.style.cssText = `
+      width:${size}px; height:${size}px;
+      background:${color};
+      left:${(cx - size/2).toFixed(1)}px;
+      top:${(cy - size/2).toFixed(1)}px;
+      --tx:${tx}px; --ty:${ty}px;
+      --dur:${dur};
+      --rot:${rot};
+      ${isPetal ? `border-radius:50% 50% 50% 0; transform:rotate(${Math.random()*45}deg);` : ''}
+    `;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1100);
+  }
+}
+
+// =============================================
+//  TYPEWRITER MESSAGE
+// =============================================
+function showMessage() {
+  const overlay  = document.getElementById('msg-overlay');
+  const msgText  = document.getElementById('msg-text');
+  const msgHeart = document.getElementById('msg-hearts');
+
+  overlay.classList.add('show');
+
+  let i = 0;
+  const chars = MSG.split('');
+  let html = '';
+
+  function type() {
+    if (i >= chars.length) {
+      msgText.innerHTML = html; // remove cursor
+      setTimeout(() => msgHeart.classList.add('show'), 900);
+      return;
+    }
+    const ch = chars[i++];
+    if (ch === '\n') html += '<br>';
+    else html += ch.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    msgText.innerHTML = html + '<span id="cursor-blink"></span>';
+
+    const delay = ch === '.' || ch === '!' ? 320
+                : ch === ',' ? 180
+                : ch === '\n' ? 450
+                : 38 + Math.random() * 38;
+    setTimeout(type, delay);
+  }
+
+  setTimeout(type, 1800);
+}
+
+// =============================================
+//  CLICK HANDLER
+// =============================================
+const flowerSvg  = document.getElementById('flower-svg');
+const swayWrapper = document.getElementById('sway-wrapper');
+const hint = document.getElementById('click-hint');
+let hintHidden = false;
+
+flowerSvg.addEventListener('click', function(e) {
+  if (done) return;
+
+  clicks = Math.min(clicks + 1, MAX);
+  updateFlower(clicks);
+  drawTally(clicks);
+  spawnSparks(e.clientX, e.clientY);
+
+  if (!hintHidden) {
+    hintHidden = true;
+    hint.style.opacity = '0';
+    hint.style.transition = 'opacity 0.5s';
+  }
+
+  if (clicks >= MAX) {
+    done = true;
+    swayWrapper.classList.add('sway');
+    setTimeout(showMessage, 2200);
+  }
+});
+
+// Init
+updateFlower(0);
+</script>
+
+</body>
+</html>
